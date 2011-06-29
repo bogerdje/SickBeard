@@ -1,11 +1,12 @@
 #import sickbeard
 #from sickbeard import subtitles
+
 #set global $title="Config - Subtitles"
 #set global $header="Subtitles"
 
 #set global $sbPath="../.."
 
-#set global $topmenu="config"#
+#set global $topmenu="config"
 #import os.path
 #include $os.path.join($sickbeard.PROG_DIR, "data/interfaces/default/inc_top.tmpl")
 
@@ -28,8 +29,8 @@
                     
                     <fieldset class="component-group-list">
 
-			<div class="field-pair">
-                            <input type="checkbox" #if $sickbeard.USE_SUBTITLES then "checked=\"checked\"" else ""# id="use_subtitles" name="use_subtitles">
+			            <div class="field-pair">
+                            <input type="checkbox"#if $sickbeard.USE_SUBTITLES and $subtitles.SUBTITLES_SUPPORTED then " checked=\"checked\"" else ""##if $subtitles.SUBTITLES_SUPPORTED then "" else " disabled=\"disabled\""# id="use_subtitles" name="use_subtitles">
                             <label for="use_subtitles" class="clearfix">
                                 <span class="component-title">Enable</span>
                             </label>
@@ -37,7 +38,7 @@
 
                     </fieldset>
                 </div><!-- /component-group1 //-->
-
+                #if $subtitles.SUBTITLES_SUPPORTED
                 <div id="core-component-group2" class="component-group clearfix">
 
                     <div class="component-group-desc">
@@ -74,14 +75,14 @@
                     
                     <fieldset class="component-group-list">
 
-			<div class="field-pair">
+			            <div class="field-pair">
                             <label class="nocheck clearfix">
                                 <span class="component-title">Languages</span>
                                 <input type="text" size="15" value="<%=",".join(sickbeard.SUBTITLES_LANGUAGES)%>" id="subtitles_languages" name="subtitles_languages">
                                 <span class="component-desc">In order of preferences, comma separated</span>
                             </label>
                         </div>
-			<div class="field-pair">
+			            <div class="field-pair">
                             <input type="checkbox" #if $sickbeard.SUBTITLES_MULTI then "checked=\"checked\"" else ""# id="subtitles_multi" name="subtitles_multi">
                             <label for="subtitles_multi" class="clearfix">
                                 <span class="component-title">Multi-languages</span>
@@ -89,12 +90,13 @@
                             </label>
                         </div>
 
-                    <input type="submit" class="config_submitter" value="Save Changes" /><br/>
+                        <input type="submit" class="config_submitter" value="Save Changes" /><br/>
                     </fieldset>
                 </div><!-- /component-group3 //-->
+                #end if
 
             <br/><input type="submit" class="config_submitter" value="Save Changes" /><br/>
-                
+
             </div><!-- /config-components //-->
 
 </form>

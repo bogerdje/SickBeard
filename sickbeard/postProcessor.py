@@ -24,9 +24,12 @@ import re
 import shlex
 import subprocess
 
-import periscope
-
 import sickbeard
+
+try:
+    import periscope
+except:
+    pass
 
 from sickbeard import db
 from sickbeard import classes
@@ -405,6 +408,7 @@ class PostProcessor(object):
         episodes = []
         
                         # try to look up the nzb in history
+
         attempt_list = [self._history_lookup,
     
                         # try to analyze the episode name

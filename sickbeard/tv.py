@@ -26,12 +26,16 @@ import glob
 
 import sickbeard
 
+try:
+    import periscope
+except:
+    pass
+
 import xml.etree.cElementTree as etree
 
 from name_parser.parser import NameParser, InvalidNameException
 
 from lib.tvdb_api import tvdb_api, tvdb_exceptions
-import periscope
 
 from sickbeard import db
 from sickbeard import helpers, exceptions, logger

@@ -15,9 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Sick Beard.  If not, see <http://www.gnu.org/licenses/>.
-
-from periscope import periscope
 import sickbeard
+try:
+    from periscope import periscope
+    SUBTITLES_SUPPORTED = True
+except:
+    SUBTITLES_SUPPORTED = False
 
 def sortedPluginList():
     pluginsMapping = dict([(x.lower(), x) for x in periscope.Periscope.listExistingPlugins()])
