@@ -24,6 +24,7 @@ import urllib2
 import urllib
 import traceback
 import httplib
+from periscope import encodingKludge as ek
 
 class SubScene(PluginBase.PluginBase):
     site_url = 'http://subscene.com'
@@ -98,24 +99,24 @@ class SubScene(PluginBase.PluginBase):
         self.downloadFile(subtitle["link"], archivefilename)
         subtitlefilename = None
         if zipfile.is_zipfile(archivefilename):
-            self.logger.debug("Unzipping file " + archivefilename)
+            self.logger.debug(u"Unzipping file " + archivefilename)
             zf = zipfile.ZipFile(archivefilename, "r")
             for el in zf.infolist():
                 extension = el.orig_filename.rsplit(".", 1)[1]
                 if extension in ("srt", "sub", "txt"):
                     subtitlefilename = srtbasefilename + "." + extension
-                    outfile = open(subtitlefilename, "wb")
+                    outfile = ek.ek(open, subtitlefilename, "wb")
                     outfile.write(zf.read(el.orig_filename))
                     outfile.flush()
                     outfile.close()
                 else:
-                    self.logger.info("File %s does not seem to be valid " % el.orig_filename)
+                    self.logger.info(u"File %s does not seem to be valid " % el.orig_filename)
             # Deleting the zip file
             zf.close()
-            os.remove(archivefilename)
+            ek.ek(os.remove, archivefilename)
             return subtitlefilename
         elif archivefilename.endswith('.rar'):
-            self.logger.warn('Rar is not really supported yet. Trying to call unrar')
+            self.logger.warn(u'Rar is not really supported yet. Trying to call unrar')
             import subprocess
             try :
                 args = ['unrar', 'lb', archivefilename]
@@ -123,20 +124,20 @@ class SubScene(PluginBase.PluginBase):
                 for el in output.splitlines():
                     extension = el.rsplit(".", 1)[1]
                     if extension in ("srt", "sub"):
-                        args = ['unrar', 'e', archivefilename, el, os.path.dirname(archivefilename)]
+                        args = ['unrar', 'e', archivefilename, el, ek.ek(os.path.dirname, archivefilename)]
                         subprocess.Popen(args)
-                        tmpsubtitlefilename = os.path.join(os.path.dirname(archivefilename), el)
-                        subtitlefilename = os.path.join(os.path.dirname(archivefilename), srtbasefilename + "." + extension)
-                        if os.path.exists(tmpsubtitlefilename):
+                        tmpsubtitlefilename = ek.ek(os.path.join, ek.ek(os.path.dirname, archivefilename), el)
+                        subtitlefilename = ek.ek(os.path.join, ek.ek(os.path.dirname, archivefilename), srtbasefilename + "." + extension)
+                        if ek.ek(os.path.exists, tmpsubtitlefilename):
                             # rename it to match the file
-                            os.rename(tmpsubtitlefilename, subtitlefilename)
+                            ek.ek(os.rename, tmpsubtitlefilename, subtitlefilename)
                             # exit
                         return subtitlefilename
             except OSError, e:
-                self.logger.error("Execution failed: %s" % e)
+                self.logger.error(u"Execution failed: %s" % e)
                 return None
         else:
-            self.logger.info("Unexpected file type (not zip) for %s" % archivefilename)
+            self.logger.info(u"Unexpected file type (not zip) for %s" % archivefilename)
             return None
 
     def downloadFile(self, url, filename):
@@ -148,7 +149,7 @@ class SubScene(PluginBase.PluginBase):
         ''' Make a query on SubScene and returns info about found subtitles '''
         sublinks = []
         searchurl = "%s%s" % (self.server_url, urllib.quote(token))
-        self.logger.debug("Query: %s" % searchurl)
+        self.logger.debug(u"Query: %s" % searchurl)
         page = urllib2.urlopen(searchurl)
         soup = BeautifulSoup(page.read())
         for subs in soup("a", {"class": "a1"}):

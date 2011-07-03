@@ -22,6 +22,7 @@ import os
 import socket
 import xmlrpclib
 import guessit
+from periscope import encodingKludge as ek
 
 class OpenSubtitles(PluginBase.PluginBase):
     site_url = 'http://www.opensubtitles.org'
@@ -91,9 +92,9 @@ class OpenSubtitles(PluginBase.PluginBase):
         # as self.multi_filename_queries is false, we won't have multiple filenames in the list so pick the only one
         # once multi-filename queries are implemented, set multi_filename_queries to true and manage a list of multiple filenames here
         filepath = filenames[0]
-        if os.path.isfile(filepath):
+        if ek.ek(os.path.isfile, filepath):
             filehash = self.hashFile(filepath)
-            size = os.path.getsize(filepath)
+            size = ek.ek(os.path.getsize, filepath)
             return self.query(moviehash=filehash, languages=languages, bytesize=size, filepath=filepath)
         else:
             return self.query(languages=languages, filepath=filepath)
@@ -102,12 +103,12 @@ class OpenSubtitles(PluginBase.PluginBase):
         ''' Main method to call when you want to download a subtitle '''
         subtitleFilename = subtitle["filename"].rsplit(".", 1)[0] + self.getExtension(subtitle)
         self.downloadFile(subtitle["link"], subtitleFilename + ".gz")
-        f = gzip.open(subtitleFilename + ".gz")
-        dump = open(subtitleFilename, "wb")
+        f = ek.ek(gzip.open, subtitleFilename + ".gz")
+        dump = ek.ek(open, subtitleFilename, "wb")
         dump.write(f.read())
         dump.close()
         f.close()
-        os.remove(subtitleFilename + ".gz")
+        ek.ek(os.remove, subtitleFilename + ".gz")
         return subtitleFilename
 
     def query(self, filepath, imdbID=None, moviehash=None, bytesize=None, languages=None):
@@ -124,7 +125,7 @@ class OpenSubtitles(PluginBase.PluginBase):
         if languages:
             search['sublanguageid'] = ",".join([self.getLanguage(l) for l in languages])
         if not imdbID and not moviehash and not bytesize:
-            self.logger.debug("No search term, we'll use the filename")
+            self.logger.debug(u"No search term, we'll use the filename")
             guess = guessit.guess_file_info(filepath, 'autodetect')
             if guess['type'] == 'episode':
                 search['query'] = guess['series']
@@ -141,7 +142,7 @@ class OpenSubtitles(PluginBase.PluginBase):
                 raise Exception('OpenSubtitles login failed')
             token = log_result["token"]
         except Exception:
-            self.logger.error("Cannot login")
+            self.logger.error(u"Cannot login")
             token = None
             socket.setdefaulttimeout(None)
             return []
@@ -151,16 +152,16 @@ class OpenSubtitles(PluginBase.PluginBase):
         try:
             self.server.LogOut(token)
         except:
-            self.logger.error("Cannot logout")
+            self.logger.error(u"Cannot logout")
         socket.setdefaulttimeout(None)
         return sublinks
 
     def get_results(self, token, search, filepath):
-        self.logger.debug("Query uses token %s and search parameters %s" % (token, search))
+        self.logger.debug(u"Query uses token %s and search parameters %s" % (token, search))
         try:
             results = self.server.SearchSubtitles(token, [search])
         except Exception, e:
-            self.logger.debug("Cannot query the server")
+            self.logger.debug(u"Cannot query the server")
             return []
         if not results['data']: # no subtitle found
             return []
@@ -175,7 +176,7 @@ class OpenSubtitles(PluginBase.PluginBase):
             result["filename"] = filepath
             result["plugin"] = self.getClassName()
             if 'query' in search and not r["MovieReleaseName"].replace('.', ' ').startswith(search['query']): # query mode search, filter results
-                self.logger.debug("Skipping %s it does not start with %s" %(r["MovieReleaseName"].replace('.', ' '), search['query']))
+                self.logger.debug(u"Skipping %s it does not start with %s" %(r["MovieReleaseName"].replace('.', ' '), search['query']))
                 continue
             sublinks.append(result)
         return sublinks

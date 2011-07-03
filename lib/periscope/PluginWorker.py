@@ -57,11 +57,11 @@ class PluginWorker(threading.Thread):
                             result = subtitle
                             break
                 else:
-                    self.logger.error('Unknown task %s submited to worker %s' % (task['task'], self.name))
+                    self.logger.error(u'Unknown task %s submited to worker %s' % (task['task'], self.name))
             except:
                 self.logger.debug(traceback.print_exc())
-                self.logger.error("Worker couldn't do the job %s, continue anyway" % task['task'])
+                self.logger.error(u"Worker couldn't do the job %s, continue anyway" % task['task'])
             finally:
                 self.resultQueue.put(result)
                 self.taskQueue.task_done()
-        self.logger.debug("Thread %s terminated" % self.name)
+        self.logger.debug(u"Thread %s terminated" % self.name)

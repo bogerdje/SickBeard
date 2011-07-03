@@ -24,6 +24,7 @@ import pickle
 import traceback
 import urllib
 import urllib2
+from periscope import encodingKludge as ek
 
 class BierDopje(PluginBase.PluginBase):
     site_url = 'http://bierdopje.com'
@@ -50,15 +51,17 @@ class BierDopje(PluginBase.PluginBase):
         #http://api.bierdopje.com/23459DC262C0A742/GetAllSubsFor/94/5/1/en (30 rock, season 5, episode 1)
         if not config_dict or not config_dict['cache_dir']:
              raise Exception('Cache directory is mandatory for this plugin')
-        self.showid_cache = os.path.join(config_dict['cache_dir'], "bierdopje_showid.cache")
+        self.showid_cache = ek.ek(os.path.join, config_dict['cache_dir'], "bierdopje_showid.cache")
         with self.lock:
-            if not os.path.exists(self.showid_cache):
+            if not ek.ek(os.path.exists, self.showid_cache):
+                if not ek.ek(os.path.exists, ek.ek(os.path.dirname, self.showid_cache)):
+                    raise Exception("Cache directory doesn't exists")
                 f = open(self.showid_cache, 'w')
                 pickle.dump({}, f)
                 f.close()
             f = open(self.showid_cache, 'r')
             self.showids = pickle.load(f)
-            self.logger.debug("Reading showids from cache: %s" % self.showids)
+            self.logger.debug(u"Reading showids from cache: %s" % self.showids)
             f.close()
 
     def list(self, filenames, languages):
@@ -107,7 +110,7 @@ class BierDopje(PluginBase.PluginBase):
             show_id = self.showids[show_name]
         else: # retrieve it
             show_id_url = "%sGetShowByName/%s" % (self.server_url, urllib.quote(show_name))
-            self.logger.debug("Retrieving show id from web at %s" % show_id_url)
+            self.logger.debug(u"Retrieving show id from web at %s" % show_id_url)
             page = urllib2.urlopen(show_id_url)
             dom = minidom.parse(page)
             if not dom or len(dom.getElementsByTagName('showid')) == 0: # no proper result
@@ -117,7 +120,7 @@ class BierDopje(PluginBase.PluginBase):
             self.showids[show_name] = show_id
             with self.lock:
                 f = open(self.showid_cache, 'w')
-                self.logger.debug("Writing showid %s to cache file" % show_id)
+                self.logger.debug(u"Writing showid %s to cache file" % show_id)
                 pickle.dump(self.showids, f)
                 f.close()
             page.close()
@@ -125,7 +128,7 @@ class BierDopje(PluginBase.PluginBase):
         # get the subs for the show id we have
         for language in available_languages :
             subs_url = "%sGetAllSubsFor/%s/%s/%s/%s" % (self.server_url, show_id, season, episode, language)
-            self.logger.debug("Getting subtitles at %s" % subs_url)
+            self.logger.debug(u"Getting subtitles at %s" % subs_url)
             page = urllib2.urlopen(subs_url)
             dom = minidom.parse(page)
             page.close()

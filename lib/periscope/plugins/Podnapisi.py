@@ -26,6 +26,7 @@ import os
 import urllib2
 import urllib
 import traceback
+from periscope import encodingKludge as ek
 
 class Podnapisi(PluginBase.PluginBase):
     site_url = "http://www.podnapisi.net"
@@ -93,7 +94,7 @@ class Podnapisi(PluginBase.PluginBase):
         # as self.multi_filename_queries is false, we won't have multiple filenames in the list so pick the only one
         # once multi-filename queries are implemented, set multi_filename_queries to true and manage a list of multiple filenames here
         filepath = filenames[0]
-        if not os.path.isfile(filepath):
+        if not ek.ek(os.path.isfile, filepath):
             return []
         return self.query(self.hashFile(filepath), languages) 
     
@@ -107,11 +108,11 @@ class Podnapisi(PluginBase.PluginBase):
         socket.setdefaulttimeout(self.timeout)
         try:
             log_result = self.server.initiate(self.user_agent)
-            self.logger.debug("Result: %s" % log_result)
+            self.logger.debug(u"Result: %s" % log_result)
             token = log_result["session"]
             nonce = log_result["nonce"]
         except Exception, e:
-            self.logger.error("Cannot login" % log_result)
+            self.logger.error(u"Cannot login" % log_result)
             socket.setdefaulttimeout(None)
             return []
         username = 'getmesubs'
@@ -124,12 +125,12 @@ class Podnapisi(PluginBase.PluginBase):
         hash.update(nonce)
         password = hash.hexdigest()
         self.server.authenticate(token, username, password)
-        self.logger.debug('Authenticated')
+        self.logger.debug(u'Authenticated')
         #if languages:
         #    self.logger.debug([self.getLanguage(l) for l in languages])
         #    self.server.setFilters(token, [self.getLanguage(l) for l in languages])
         #    self.logger.debug('Filers set for languages %s' % languages)
-        self.logger.debug("Starting search with token %s and hashs %s" %(token, [moviehash]))
+        self.logger.debug(u"Starting search with token %s and hashs %s" %(token, [moviehash]))
         results = self.server.search(token, [moviehash])
         return results
         subs = []

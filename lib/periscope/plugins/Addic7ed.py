@@ -98,15 +98,15 @@ class Addic7ed(PluginBase.PluginBase):
         ''' Make a query and returns info about found subtitles '''
         searchname = name.lower().replace(" ", "_")
         searchurl = "%s/serie/%s/%s/%s/%s" % (self.server_url, searchname, season, episode, searchname)
-        self.logger.debug("Searching in %s" % searchurl)
+        self.logger.debug(u"Searching in %s" % searchurl)
         try:
             req = urllib2.Request(searchurl, headers={'User-Agent': self.user_agent})
             page = urllib2.urlopen(req, timeout=self.timeout)
         except urllib2.HTTPError as inst:
-            self.logger.info("Error: %s - %s" % (searchurl, inst))
+            self.logger.info(u"Error: %s - %s" % (searchurl, inst))
             return []
         except urllib2.URLError as inst:
-            self.logger.info("TimeOut: %s" % inst)
+            self.logger.info(u"TimeOut: %s" % inst)
             return []
         soup = BeautifulSoup(page.read())
         sublinks = []
@@ -125,7 +125,7 @@ class Addic7ed(PluginBase.PluginBase):
             if not sub_status == 'Completed': # On not completed subtitles
                 continue
             sub_link = self.server_url + html_status.findNextSibling('td', {'colspan': '3'}).find('a')['href']
-            self.logger.debug('Found a match with teams: %s' % sub_teams)
+            self.logger.debug(u'Found a match with teams: %s' % sub_teams)
             result = {}
             result["release"] = "%s.S%.2dE%.2d.%s" % (name.replace(" ", "."), int(season), int(episode), '.'.join(sub_teams))
             result["lang"] = sub_language

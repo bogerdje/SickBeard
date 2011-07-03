@@ -19,7 +19,6 @@
 from BeautifulSoup import BeautifulSoup
 import guessit
 import zipfile
-import os
 import urllib2
 import urllib
 import logging
@@ -27,6 +26,7 @@ import traceback
 import httplib
 import re
 import PluginBase
+from periscope import encodingKludge as ek
 
 class Subtitulos(PluginBase.PluginBase):
     site_url = 'http://www.subtitulos.es'
@@ -79,15 +79,15 @@ class Subtitulos(PluginBase.PluginBase):
         sublinks = []
         searchname = name.lower().replace(" ", "-")
         searchurl = "%s/%s/%sx%.2d" %(self.server_url, searchname, season, episode)
-        self.logger.debug("Searching in %s" % searchurl)
+        self.logger.debug(u"Searching in %s" % searchurl)
         try:
             req = urllib2.Request(searchurl, headers={'User-Agent': self.user_agent})
             page = urllib2.urlopen(req, timeout=self.timeout)
         except urllib2.HTTPError as inst:
-            self.logger.info("Error: %s - %s" % (searchurl, inst))
+            self.logger.info(u"Error: %s - %s" % (searchurl, inst))
             return []
         except urllib2.URLError as inst:
-            self.logger.info("TimeOut: %s" % inst)
+            self.logger.info(u"TimeOut: %s" % inst)
             return []
         soup = BeautifulSoup(page.read())
         for subs in soup("div", {"id": "version"}):
@@ -95,8 +95,8 @@ class Subtitulos(PluginBase.PluginBase):
             sub_teams = self.listTeams([self.release_pattern.search("%s" % version.contents[1]).group(1).lower()], [".", "_", " ", "/"])
             if not release_group.intersection(sub_teams): # On wrong team
                 continue
-            self.logger.debug("Team from website: %s" % sub_teams)
-            self.logger.debug("Team from file: %s" % release_group)
+            self.logger.debug(u"Team from website: %s" % sub_teams)
+            self.logger.debug(u"Team from file: %s" % release_group)
             for html_language in subs.findAllNext("ul", {"class": "sslist"}):
                 sub_language = self.getRevertLanguage(html_language.findNext("li", {"class": "li-idioma"}).find("strong").contents[0].string.strip())
                 if languages and not sub_language in languages: # On wrong language
@@ -132,7 +132,7 @@ class Subtitulos(PluginBase.PluginBase):
         ''' Downloads the given url to the given filename '''
         req = urllib2.Request(url, headers={'Referer' : url, 'User-Agent' : 'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.1.3)'})
         f = urllib2.urlopen(req)
-        dump = open(filename, "wb")
+        dump = ek.ek(open, filename, "wb")
         dump.write(f.read())
         dump.close()
         f.close()

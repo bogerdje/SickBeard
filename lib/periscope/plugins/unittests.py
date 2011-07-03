@@ -142,17 +142,17 @@ class TheSubDBDownloadTestCase(unittest.TestCase):
 
 class SubsWikiListTestCase(unittest.TestCase):
     def runTest(self):
-        import Subtitulos
-        plugin = Subtitulos.Subtitulos()
-        results = plugin.list(["The.Big.Bang.Theory.S03E13.HDTV.XviD-2HD.mkv"], ['en', 'fr'])
+        import SubsWiki
+        plugin = SubsWiki.SubsWiki()
+        results = plugin.list(["The.Big.Bang.Theory.S03E13.HDTV.XviD-2HD.mkv"], ['en', 'es'])
         print results
         assert len(results) > 0
 
 class SubsWikiDownloadTestCase(unittest.TestCase):
     def runTest(self):
-        import Subtitulos
-        plugin = Subtitulos.Subtitulos()
-        results = plugin.download(plugin.list(["/tmp/The.Big.Bang.Theory.S03E13.HDTV.XviD-2HD.mkv"], ['en', 'fr'])[0])
+        import SubsWiki
+        plugin = SubsWiki.SubsWiki()
+        results = plugin.download(plugin.list(["/tmp/The.Big.Bang.Theory.S03E13.HDTV.XviD-2HD.mkv"], ['en', 'es'])[0])
         print results
         assert len(results) > 0
 '''

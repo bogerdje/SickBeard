@@ -19,22 +19,22 @@
 from BeautifulSoup import BeautifulSoup
 import PluginBase
 import zipfile
-import os
 import urllib2
 import urllib
 import logging
 import traceback
 import httplib
 import re
+import guessit
+from periscope import encodingKludge as ek
 
 class SubsWiki(PluginBase.PluginBase):
     site_url = 'http://www.subswiki.com'
     site_name = 'SubsWiki'
-    server_url = 'http://www.subswiki.com' # for testing purpose, use http://sandbox.thesubdb.com instead
+    server_url = 'http://www.subswiki.com'
     multi_languages_queries = True
     multi_filename_queries = False
-    api_based = True
-    user_agent = 'SubDB/1.0 (Periscope-ng/0.1; https://github.com/Diaoul/periscope-ng/)' # format defined by the API
+    api_based = False
     _plugin_languages = {u"English (US)": "en",
             u"English (UK)": "en",
             u"English": "en",
@@ -48,16 +48,16 @@ class SubsWiki(PluginBase.PluginBase):
             u"Català": "ca"}
 
     def __init__(self, config_dict=None):
-        super(TheSubDB, self).__init__(self._plugin_languages, config_dict, True)
+        super(SubsWiki, self).__init__(self._plugin_languages, config_dict, True)
         self.release_pattern = re.compile("\nVersion (.+), ([0-9]+).([0-9])+ MBs")
 
-    def list(self, filepath, languages):
+    def list(self, filenames, languages):
         ''' Main method to call when you want to list subtitles '''
         # as self.multi_filename_queries is false, we won't have multiple filenames in the list so pick the only one
         # once multi-filename queries are implemented, set multi_filename_queries to true and manage a list of multiple filenames here
+        filepath = filenames[0]
         if not self.checkLanguages(languages):
             return []
-        filepath = filenames[0]
         guess = guessit.guess_file_info(filepath, 'autodetect')
         if guess['type'] != 'episode':
             return []
@@ -79,48 +79,56 @@ class SubsWiki(PluginBase.PluginBase):
         ''' Make a query and returns info about found subtitles '''
         sublinks = []
         searchname = name.lower().replace(" ", "_")
-        searchurl = "%s/serie/%s/%s/%s/" %(self.host, searchname, season, episode)
-        self.logger.debug("Searching in %s" %searchurl)
+        searchurl = "%s/serie/%s/%s/%s/" %(self.server_url, searchname, season, episode)
+        self.logger.debug(u"Searching in %s" %searchurl)
         try:
             req = urllib2.Request(searchurl, headers={'User-Agent': self.user_agent})
             page = urllib2.urlopen(req, timeout=self.timeout)
         except urllib2.HTTPError as inst:
-            self.logger.info("Error: %s - %s" % (searchurl, inst))
+            self.logger.info(u"Error: %s - %s" % (searchurl, inst))
             return []
         except urllib2.URLError as inst:
-            self.logger.info("TimeOut: %s" % inst)
+            self.logger.info(u"TimeOut: %s" % inst)
             return []
         soup = BeautifulSoup(page.read())
         for subs in soup("td", {"class": "NewsTitle"}):
-            sub_teams = self.listTeams([self.release_pattern.search("%s" % subs.contents[1]).group(1)], [".", "_", " ", "/"])
+            sub_teams = self.listTeams([self.release_pattern.search("%s" % subs.contents[1]).group(1)], [".", "_", " ", "/", "-"])
             if not release_group.intersection(sub_teams): # On wrong team
                 continue
-            self.logger.debug("Team from website: %s" % sub_teams)
-            self.logger.debug("Team from file: %s" % release_group)
+            self.logger.debug(u"Team from website: %s" % sub_teams)
+            self.logger.debug(u"Team from file: %s" % release_group)
             for html_language in subs.parent.parent.findAll("td", {"class": "language"}):
                 sub_language = self.getRevertLanguage(html_language.string.strip())
+                self.logger.debug(u"Subtitle reverted language: %s" % sub_language)
                 if languages and not sub_language in languages: # On wrong language
                     continue
                 html_status = html_language.findNextSibling('td')
                 sub_status = html_status.find('strong').string.strip()
                 if not sub_status == 'Completed': # On not completed subtitles
                     continue
-                link = html_status.findNext("td").find("a")["href"]
-
-                if status == "Completed" and subteams.issubset(teams) and (not langs or lang in langs) :
-                    result = {}
-                    result["release"] = "%s.S%.2dE%.2d.%s" %(name.replace(" ", "."), int(season), int(episode), '.'.join(subteams))
-                    result["lang"] = language
-                    result["link"] = self.server_url + link
-                    result["page"] = searchurl
-                    sublinks.append(result)
+                sub_link = html_status.findNext("td").find("a")["href"]
+                result = {}
+                result["release"] = "%s.S%.2dE%.2d.%s" %(name.replace(" ", "."), int(season), int(episode), '.'.join(sub_teams))
+                result["lang"] = sub_language
+                result["link"] = self.server_url + sub_link
+                result["page"] = searchurl
+                result["filename"] = filepath
+                result["plugin"] = self.getClassName()
+                result["teams"] = sub_teams # used to sort
+                sublinks.append(result)
+        sublinks.sort(self._cmpTeams)
         return sublinks
-       
+
+    def download(self, subtitle):
+        ''' Main method to call when you want to download a subtitle '''
+        subtitleFilename = subtitle["filename"].rsplit(".", 1)[0] + self.getExtension(subtitle)
+        self.downloadFile(subtitle["link"], subtitleFilename)
+        return subtitleFilename
+
     def listTeams(self, subteams, separators):
         teams = []
         for sep in separators:
             subteams = self.splitTeam(subteams, sep)
-        logging.debug(subteams)
         return set(subteams)
    
     def splitTeam(self, subteams, sep):
@@ -129,23 +137,15 @@ class SubsWiki(PluginBase.PluginBase):
             teams += t.split(sep)
         return teams
 
-    def createFile(self, subtitle):
-        '''pass the URL of the sub and the file it matches, will unzip it
-        and return the path to the created file'''
-        suburl = subtitle["link"]
-        videofilename = subtitle["filename"]
-        srtbasefilename = videofilename.rsplit(".", 1)[0]
-        srtfilename = srtbasefilename +".srt"
-        self.downloadFile(suburl, srtfilename)
-        return srtfilename
-
     def downloadFile(self, url, filename):
         ''' Downloads the given url to the given filename '''
         req = urllib2.Request(url, headers={'Referer' : url, 'User-Agent' : 'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.1.3)'})
-       
         f = urllib2.urlopen(req)
-        dump = open(filename, "wb")
+        dump = ek.ek(open, filename, "wb")
         dump.write(f.read())
         dump.close()
         f.close()
 
+    def _cmpTeams(self, x, y):
+        ''' Sort based on teams matching '''
+        return -cmp(len(x['teams'].intersection(self.release_group)), len(y['teams'].intersection(self.release_group)))

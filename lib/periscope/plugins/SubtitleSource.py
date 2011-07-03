@@ -18,7 +18,6 @@
 
 import ConfigParser
 import PluginBase
-import os
 import traceback
 import urllib
 import urllib2
@@ -45,7 +44,7 @@ class SubtitleSource(PluginBase.PluginBase):
         if config_dict and "subtitlesource_key" in config_dict:
             self.server_url = self.server_url % config_dict["subtitlesource_key"]
         else:
-            self.logger.error('SubtitleSource API Key is mandatory for this plugin')
+            self.logger.error(u'SubtitleSource API Key is mandatory for this plugin')
             raise Exception('SubtitleSource API Key is mandatory for this plugin')
             
     def list(self, filenames, languages):
@@ -63,7 +62,7 @@ class SubtitleSource(PluginBase.PluginBase):
     
     def query(self, token, languages=None):
         ''' Makes a query on SubtitlesSource and returns info (link, lang) about found subtitles'''
-        self.logger.debug("Local file is: %s " % token)
+        self.logger.debug(u"Local file is: %s " % token)
         sublinks = []
 
         if not languages: # langs is empty of None
@@ -80,7 +79,7 @@ class SubtitleSource(PluginBase.PluginBase):
             
         for lang in languages:
             searchurl = "%s/%s/%s/0" % (self.server_url, urllib.quote(token), lang)
-            self.logger.debug("dl'ing %s" % searchurl)
+            self.logger.debug(u"dl'ing %s" % searchurl)
             page = urllib2.urlopen(searchurl, timeout=self.timeout)
             xmltree = xml.dom.minidom.parse(page)
             subs = xmltree.getElementsByTagName("sub")
@@ -91,7 +90,7 @@ class SubtitleSource(PluginBase.PluginBase):
                 if multipart and not int(self.getValue(sub, 'cd')) > 1:
                     continue # The subtitle is not a multipart
                 dllink = "http://www.subtitlesource.org/download/text/%s/%s" % (self.getValue(sub, "id"), part)
-                self.logger.debug("Link added: %s (%s)" % (dllink, sublang))
+                self.logger.debug(u"Link added: %s (%s)" % (dllink, sublang))
                 result = {}
                 result["release"] = self.getValue(sub, "releasename")
                 result["link"] = dllink
@@ -100,9 +99,9 @@ class SubtitleSource(PluginBase.PluginBase):
                 releaseMetaData = self.guessFileData(result['release'])
                 teams = set(metaData['teams'])
                 srtTeams = set(releaseMetaData['teams'])
-                self.logger.debug("Analyzing: %s " % result['release'])
-                self.logger.debug("Local file has: %s " % metaData['teams'])
-                self.logger.debug("Remote sub has: %s " % releaseMetaData['teams'])
+                self.logger.debug(u"Analyzing: %s " % result['release'])
+                self.logger.debug(u"Local file has: %s " % metaData['teams'])
+                self.logger.debug(u"Remote sub has: %s " % releaseMetaData['teams'])
                 if result['release'].startswith(token) or (releaseMetaData['name'] == metaData['name'] and releaseMetaData['type'] == metaData['type'] and (teams.issubset(srtTeams) or srtTeams.issubset(teams))):
                     sublinks.append(result)
         return sublinks

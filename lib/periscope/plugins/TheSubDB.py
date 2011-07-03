@@ -20,6 +20,7 @@ import PluginBase
 import hashlib
 import os
 import urllib2
+from periscope import encodingKludge as ek
 
 class TheSubDB(PluginBase.PluginBase):
     site_url = 'http://thesubdb.com'
@@ -57,26 +58,26 @@ class TheSubDB(PluginBase.PluginBase):
         # as self.multi_filename_queries is false, we won't have multiple filenames in the list so pick the only one
         # once multi-filename queries are implemented, set multi_filename_queries to true and manage a list of multiple filenames here
         filepath = filenames[0]
-        if not os.path.isfile(filepath):
+        if not ek.ek(os.path.isfile, filepath):
             return []
         return self.query(filepath, self.hashFile(filepath), languages)
 
     def query(self, filepath, moviehash, languages=None):
         searchurl = "%s/?action=%s&hash=%s" % (self.server_url, "search", moviehash)
-        self.logger.debug('Query URL: %s' % searchurl)
+        self.logger.debug(u'Query URL: %s' % searchurl)
         try:
             req = urllib2.Request(searchurl, headers={'User-Agent': self.user_agent})
             page = urllib2.urlopen(req, timeout=self.timeout)
         except urllib2.HTTPError as inst:
             if inst.code == 404: # no result found
                 return []
-            self.logger.error("Error: %s - %s" % (searchurl, inst))
+            self.logger.error(u"Error: %s - %s" % (searchurl, inst))
             return []
         except urllib2.URLError as inst:
-            self.logger.error("TimeOut: %s" % inst)
+            self.logger.error(u"TimeOut: %s" % inst)
             return []
         available_languages = page.readlines()[0].split(',')
-        self.logger.debug('Available languages: %s' % available_languages)
+        self.logger.debug(u'Available languages: %s' % available_languages)
         subs = []
         for l in available_languages :
             if not languages or l in languages:
@@ -93,8 +94,8 @@ class TheSubDB(PluginBase.PluginBase):
     def hashFile(self, name):
         ''' This hash function receives the filename and returns the hash code '''
         readsize = 64 * 1024
-        with open(name, 'rb') as f:
-            size = os.path.getsize(name)
+        with ek.ek(open, name, 'rb') as f:
+            size = ek.ek(os.path.getsize, name)
             data = f.read(readsize)
             f.seek(-readsize, os.SEEK_END)
             data += f.read(readsize)
