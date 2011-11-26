@@ -72,7 +72,7 @@ class TVShow(object):
         self.startyear = 0
         self.paused = 0
         self.air_by_date = 0
-        self.subtitles = 0
+        self.subtitles = int(sickbeard.SUBTITLES_DEFAULT)
         self.lang = lang
 
         self.lock = threading.Lock()
@@ -219,6 +219,10 @@ class TVShow(object):
 
             # store the reference in the show
             if curEpisode != None:
+                try:
+                	curEpisode.refreshSubtitles()
+                except:
+                    logger.log(str(self.tvdbid) + ": Could not refresh subtitles", logger.ERROR)
                 curEpisode.saveToDB()
 
 
@@ -743,24 +747,19 @@ class TVShow(object):
                     curEp.saveToDB()
                 continue
 
-            # refresh subtitles files
-            curEp.refreshSubtitles()
-            curEp.saveToDB()
-
     def downloadSubtitles(self):
         #TODO: Add support for force option
         if not ek.ek(os.path.isdir, self._location):
             logger.log(str(self.tvdbid) + ": Show dir doesn't exist, can't download subtitles", logger.DEBUG)
             return
         logger.log(str(self.tvdbid) + ": Downloading subtitles", logger.DEBUG)
-        subli = subliminal.Subliminal(cache_dir=sickbeard.CACHE_DIR, workers=1, multi=sickbeard.SUBTITLES_MULTI, force=False, max_depth=3)
-        subli.languages = sickbeard.SUBTITLES_LANGUAGES
-        subli.plugins = sickbeard.subtitles.getEnabledPluginList()
-        try:
-            subtitles = subli.downloadSubtitles([self._location])
-        except Exception as e:
-            logger.log("Error occurred when downloading subtitles: " + str(e), logger.DEBUG)
-            return
+        with subliminal.Subliminal(cache_dir=sickbeard.CACHE_DIR, workers=1, multi=sickbeard.SUBTITLES_MULTI, force=False, max_depth=3,
+                                   languages=sickbeard.SUBTITLES_LANGUAGES, plugins=sickbeard.subtitles.getEnabledPluginList()) as subli:
+            try:
+                subtitles = subli.downloadSubtitles([self._location])
+            except Exception as e:
+                logger.log("Error occurred when downloading subtitles: " + str(e), logger.DEBUG)
+                return
         for subtitle in subtitles:
             helpers.chmodAsParent(subtitle.path)
         if subtitles:
@@ -1027,7 +1026,7 @@ class TVEpisode(object):
 
     def refreshSubtitles(self):
         """Look for subtitles files and refresh the subtitles property"""
-        self.subtitles = subtitles.subtitlesLanguagesFromFiles(postProcessor.PostProcessor(self.location)._list_associated_files(self.location, True))
+        self.subtitles = subtitles.subtitlesLanguages(self.location)
 
     def downloadSubtitles(self):
         #TODO: Add support for force option
@@ -1035,14 +1034,13 @@ class TVEpisode(object):
             logger.log(str(self.show.tvdbid) + ": Episode file doesn't exist, can't download subtitles for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
             return
         logger.log(str(self.show.tvdbid) + ": Downloading subtitles for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
-        subli = subliminal.Subliminal(cache_dir=sickbeard.CACHE_DIR, workers=1, multi=sickbeard.SUBTITLES_MULTI, force=False, max_depth=3)
-        subli.languages = sickbeard.SUBTITLES_LANGUAGES
-        subli.plugins = sickbeard.subtitles.getEnabledPluginList()
-        try:
-            subtitles = subli.downloadSubtitles([self._location])
-        except Exception as e:
-            logger.log("Error occurred when downloading subtitles: " + str(e), logger.DEBUG)
-            return
+        with subliminal.Subliminal(cache_dir=sickbeard.CACHE_DIR, workers=1, multi=sickbeard.SUBTITLES_MULTI, force=False,
+                                   max_depth=3, languages=sickbeard.SUBTITLES_LANGUAGES, plugins=sickbeard.subtitles.getEnabledPluginList()) as subli:
+            try:
+                subtitles = subli.downloadSubtitles([self._location])
+            except Exception as e:
+                logger.log("Error occurred when downloading subtitles: " + str(e), logger.DEBUG)
+                return
         for subtitle in subtitles:
             helpers.chmodAsParent(subtitle.path)
         if subtitles:
@@ -1053,6 +1051,28 @@ class TVEpisode(object):
         self.subtitles_searchcount = self.subtitles_searchcount + 1
         self.subtitles_lastsearch = datetime.datetime.now()
         self.saveToDB()
+
+    def mergeSubtitles(self):
+        if not ek.ek(os.path.isfile, self._location):
+            logger.log(str(self.show.tvdbid) + ": Episode file doesn't exist, can't merge subtitles for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
+            return
+        logger.log(str(self.show.tvdbid) + ": Merging subtitles for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
+        video = subliminal.videos.Video.fromPath(self._location)
+        subtitles = video.scan()
+        if not subtitles:
+            logger.log(str(self.show.tvdbid) + ": No subtitles found, can't merge subtitles for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
+            return
+        try:
+            video.mkvmerge(subtitles, out=self._location + '.merged.mkv', mkvmerge_bin=sickbeard.SUBTITLES_MKVMERGE_PATH, title=self._name)
+        except:
+            if os.path.exists(self._location + '.merged.mkv'):
+                os.remove(self._location + '.merged.mkv')
+            raise
+        if sickbeard.SUBTITLES_MKVMERGE_DELETE:
+            os.remove(self._location)
+        else:
+            os.rename(self._location, self._location + '.bak')
+        os.rename(self._location + '.merged.mkv', self._location)
 
     def checkForMetaFiles(self):
 

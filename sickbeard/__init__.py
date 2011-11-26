@@ -114,6 +114,7 @@ QUALITY_DEFAULT = None
 STATUS_DEFAULT = None
 SEASON_FOLDERS_FORMAT = None
 SEASON_FOLDERS_DEFAULT = None
+SUBTITLES_DEFAULT = None
 PROVIDER_ORDER = []
 
 NAMING_SHOW_NAME = None
@@ -248,6 +249,9 @@ COMING_EPS_SORT = None
 USE_SUBTITLES = False
 SUBTITLES_LANGUAGES = []
 SUBTITLES_MULTI = False
+SUBTITLES_MKVMERGE = False
+SUBTITLES_MKVMERGE_PATH = ''
+SUBTITLES_MKVMERGE_DELETE = False
 SUBTITLES_PLUGINS_LIST = []
 SUBTITLES_PLUGINS_ENABLED = []
 
@@ -323,6 +327,7 @@ def check_setting_str(config, cfg_name, item_name, def_val, log=True):
     try:
         my_val = config[cfg_name][item_name]
     except:
+
         my_val = def_val
         try:
             config[cfg_name][item_name] = my_val
@@ -357,7 +362,7 @@ def initialize(consoleLogging=True):
                 showUpdateScheduler, __INITIALIZED__, LAUNCH_BROWSER, showList, loadingShowList, \
                 NZBS, NZBS_UID, NZBS_HASH, EZRSS, TVTORRENTS, TVTORRENTS_DIGEST, TVTORRENTS_HASH, TORRENT_DIR, USENET_RETENTION, SOCKET_TIMEOUT, \
                 SEARCH_FREQUENCY, DEFAULT_SEARCH_FREQUENCY, BACKLOG_SEARCH_FREQUENCY, \
-                QUALITY_DEFAULT, SEASON_FOLDERS_FORMAT, SEASON_FOLDERS_DEFAULT, STATUS_DEFAULT, \
+                QUALITY_DEFAULT, SEASON_FOLDERS_FORMAT, SEASON_FOLDERS_DEFAULT, SUBTITLES_DEFAULT, STATUS_DEFAULT, \
                 GROWL_NOTIFY_ONSNATCH, GROWL_NOTIFY_ONDOWNLOAD, TWITTER_NOTIFY_ONSNATCH, TWITTER_NOTIFY_ONDOWNLOAD, \
                 USE_GROWL, GROWL_HOST, GROWL_PASSWORD, USE_PROWL, PROWL_NOTIFY_ONSNATCH, PROWL_NOTIFY_ONDOWNLOAD, PROWL_API, PROWL_PRIORITY, PROG_DIR, NZBMATRIX, NZBMATRIX_USERNAME, \
                 NZBMATRIX_APIKEY, versionCheckScheduler, VERSION_NOTIFY, PROCESS_AUTOMATICALLY, \
@@ -373,7 +378,8 @@ def initialize(consoleLogging=True):
                 USE_BANNER, USE_LISTVIEW, METADATA_XBMC, METADATA_MEDIABROWSER, METADATA_PS3, metadata_provider_dict, \
                 NEWZBIN, NEWZBIN_USERNAME, NEWZBIN_PASSWORD, GIT_PATH, MOVE_ASSOCIATED_FILES, \
                 COMING_EPS_LAYOUT, COMING_EPS_SORT, COMING_EPS_DISPLAY_PAUSED, METADATA_WDTV, METADATA_TIVO, IGNORE_WORDS, \
-                USE_SUBTITLES, SUBTITLES_LANGUAGES, SUBTITLES_MULTI, SUBTITLES_PLUGINS_LIST, SUBTITLES_PLUGINS_ENABLED, subtitlesFinderScheduler
+                USE_SUBTITLES, SUBTITLES_LANGUAGES, SUBTITLES_MULTI, SUBTITLES_MKVMERGE, SUBTITLES_MKVMERGE_PATH, SUBTITLES_MKVMERGE_DELETE, \
+                SUBTITLES_PLUGINS_LIST, SUBTITLES_PLUGINS_ENABLED, subtitlesFinderScheduler
 
         if __INITIALIZED__:
             return False
@@ -586,8 +592,12 @@ def initialize(consoleLogging=True):
         USE_SUBTITLES = bool(check_setting_int(CFG, 'Subtitles', 'use_subtitles', 0))
         SUBTITLES_LANGUAGES = check_setting_str(CFG, 'Subtitles', 'subtitles_languages', '').split(',')
         SUBTITLES_MULTI = bool(check_setting_int(CFG, 'Subtitles', 'subtitles_multi', 0))
+        SUBTITLES_MKVMERGE = bool(check_setting_int(CFG, 'Subtitles', 'subtitles_mkvmerge', 0))
+        SUBTITLES_MKVMERGE_PATH = check_setting_str(CFG, 'Subtitles', 'subtitles_mkvmerge_path', '')
+        SUBTITLES_MKVMERGE_DELETE = bool(check_setting_int(CFG, 'Subtitles', 'subtitles_mkvmerge_delete', 0))
         SUBTITLES_PLUGINS_LIST = check_setting_str(CFG, 'Subtitles', 'subtitles_plugins_list', '').split(',')
         SUBTITLES_PLUGINS_ENABLED = [int(x) for x in check_setting_str(CFG, 'Subtitles', 'subtitles_plugins_enabled', '').split('|') if x]
+        SUBTITLES_DEFAULT = bool(check_setting_int(CFG, 'Subtitles', 'subtitles_default', 0))
 
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
 
@@ -733,7 +743,7 @@ def start():
     global __INITIALIZED__, currentSearchScheduler, backlogSearchScheduler, \
             showUpdateScheduler, versionCheckScheduler, showQueueScheduler, \
             properFinderScheduler, autoPostProcesserScheduler, searchQueueScheduler, \
-            subtitlesFinderScheduler, started
+            subtitlesFinderScheduler, started, USE_SUBTITLES
 
     with INIT_LOCK:
 
@@ -764,7 +774,8 @@ def start():
             autoPostProcesserScheduler.thread.start()
 
             # start the subtitles finder
-            subtitlesFinderScheduler.thread.start()
+            if USE_SUBTITLES:
+                subtitlesFinderScheduler.thread.start()
             
             started = True
 
@@ -1116,6 +1127,10 @@ def save_config():
     new_config['Subtitles']['subtitles_plugins_list'] = ','.join(SUBTITLES_PLUGINS_LIST)
     new_config['Subtitles']['subtitles_plugins_enabled'] = '|'.join([str(x) for x in SUBTITLES_PLUGINS_ENABLED])
     new_config['Subtitles']['subtitles_multi'] = int(SUBTITLES_MULTI)
+    new_config['Subtitles']['subtitles_mkvmerge'] = int(SUBTITLES_MKVMERGE)
+    new_config['Subtitles']['subtitles_mkvmerge_path'] = SUBTITLES_MKVMERGE_PATH
+    new_config['Subtitles']['subtitles_mkvmerge_delete'] = int(SUBTITLES_MKVMERGE_DELETE)
+    new_config['Subtitles']['subtitles_default'] = int(SUBTITLES_DEFAULT)
 
     new_config.write()
 

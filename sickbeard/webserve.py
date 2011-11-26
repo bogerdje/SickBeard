@@ -638,7 +638,7 @@ class ConfigGeneral:
         sickbeard.ROOT_DIRS = rootDirString
     
     @cherrypy.expose
-    def saveAddShowDefaults(self, defaultSeasonFolders, defaultStatus, anyQualities, bestQualities):
+    def saveAddShowDefaults(self, defaultSeasonFolders, defaultStatus, anyQualities, bestQualities, subtitles):
 
         if anyQualities:
             anyQualities = anyQualities.split(',')
@@ -660,7 +660,13 @@ class ConfigGeneral:
         else:
             defaultSeasonFolders = 0
 
+        if subtitles == "true":
+            subtitles = 1
+        else:
+            subtitles = 0
+
         sickbeard.SEASON_FOLDERS_DEFAULT = int(defaultSeasonFolders)
+        sickbeard.SUBTITLES_DEFAULT = int(subtitles)
 
     
     @cherrypy.expose
@@ -1360,7 +1366,8 @@ class ConfigSubtitles:
         return _munge(t)
 
     @cherrypy.expose
-    def saveSubtitles(self, use_subtitles=None, subtitles_plugins=None, subtitles_languages=None, subtitles_multi=None):
+    def saveSubtitles(self, use_subtitles=None, subtitles_plugins=None, subtitles_languages=None, subtitles_multi=None, subtitles_mkvmerge=None,
+                      subtitles_mkvmerge_path=None, subtitles_mkvmerge_delete=None):
         results = []
 
         if use_subtitles == "on":
@@ -1372,6 +1379,16 @@ class ConfigSubtitles:
             subtitles_multi = 1
         else:
             subtitles_multi = 0
+
+        if subtitles_mkvmerge == "on":
+            subtitles_mkvmerge = 1
+        else:
+            subtitles_mkvmerge = 0
+
+        if subtitles_mkvmerge_delete == "on":
+            subtitles_mkvmerge_delete = 1
+        else:
+            subtitles_mkvmerge_delete = 0
 
         plugins_str_list = subtitles_plugins.split()
         subtitles_plugins_list = []
@@ -1386,6 +1403,9 @@ class ConfigSubtitles:
         sickbeard.SUBTITLES_MULTI = subtitles_multi
         sickbeard.SUBTITLES_PLUGINS_LIST = subtitles_plugins_list
         sickbeard.SUBTITLES_PLUGINS_ENABLED = subtitles_plugins_enabled
+        sickbeard.SUBTITLES_MKVMERGE = subtitles_mkvmerge
+        sickbeard.SUBTITLES_MKVMERGE_PATH = subtitles_mkvmerge_path or ''
+        sickbeard.SUBTITLES_MKVMERGE_DELETE = subtitles_mkvmerge_delete
 
         sickbeard.save_config()
 
@@ -1782,7 +1802,7 @@ class NewHomeAddShows:
             show_dir, tvdb_id, show_name = cur_show
 
             # add the show
-            sickbeard.showQueueScheduler.action.addShow(tvdb_id, show_dir, SKIPPED, sickbeard.QUALITY_DEFAULT, sickbeard.SEASON_FOLDERS_DEFAULT) #@UndefinedVariable
+            sickbeard.showQueueScheduler.action.addShow(tvdb_id, show_dir, SKIPPED, sickbeard.QUALITY_DEFAULT, sickbeard.SEASON_FOLDERS_DEFAULT, sickbeard.SUBTITLES_DEFAULT) #@UndefinedVariable
             num_added += 1
          
         if num_added:
@@ -2528,6 +2548,25 @@ class Home:
             status = 'No subtitles downloaded'
         ui.notifications.message('Subtitles Search', status)
         return json.dumps({'result': status, 'subtitles': ','.join(ep_obj.subtitles)})
+
+    @cherrypy.expose
+    def mergeEpisodeSubtitles(self, show=None, season=None, episode=None):
+
+        # retrieve the episode object and fail if we can't get one 
+        ep_obj = _getEpisode(show, season, episode)
+        if isinstance(ep_obj, str):
+            return json.dumps({'result': 'failure'})
+
+        # try do merge subtitles for that episode
+        try:
+            ep_obj.mergeSubtitles()
+        except Exception as e:
+            return json.dumps({'result': 'failure', 'exception': str(e)})
+
+        # return the correct json value
+        status = 'Subtitles merged successfully '
+        ui.notifications.message('Merge Subtitles', status)
+        return json.dumps({'result': 'ok'})
 
 class UI:
     

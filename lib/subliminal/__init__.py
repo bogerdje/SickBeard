@@ -19,7 +19,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-__all__ = ['FORMATS', 'LANGUAGES', 'PLUGINS', 'API_PLUGINS', 'Subliminal', 'Subtitle']
-from classes import *
-from subliminal import *
-from version import __version__
+
+from infos import *
+from languages import *
+from utils import *
+from exceptions import *
+from videos import *
+from tasks import *
+from subtitles import *
+from core import *
+from plugins import *
