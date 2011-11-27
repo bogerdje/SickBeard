@@ -31,7 +31,7 @@ try:
 except ImportError:
     SUBLIMINAL_SUPPORT = False
 
-SINGLE = 'srt'
+SINGLE = 'und'
 def sortedPluginList():
     pluginsMapping = dict([(x.lower(), x) for x in subliminal.PLUGINS])
 
@@ -131,7 +131,7 @@ class SubtitlesFinder():
                 toRefresh.append((epToSub['showid'], epToSub['season'], epToSub['episode']))
                 continue
             # Not matching my rules
-            logger.log('Do not match criteria to get downloaded: %s - %dx%d' % (epToSub['showid'], epToSub['season'], epToSub['episode']), logger.DEBUG)
+            #logger.log('Do not match criteria to get downloaded: %s - %dx%d' % (epToSub['showid'], epToSub['season'], epToSub['episode']), logger.DEBUG)
 
         # stop here if we don't have subtitles to download
         if not locations:

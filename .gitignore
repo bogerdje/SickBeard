@@ -6,6 +6,8 @@ config.ini
 Logs/*
 sickbeard.db*
 autoProcessTV/autoProcessTV.cfg
+*.nzb
+*.torrent
 
 #  Compiled source   #
 ######################
@@ -20,6 +22,7 @@ autoProcessTV/autoProcessTV.cfg
 *.cproject
 *.tmproj
 *.tmproject
+*.sw?
 
 # OS generated files #
 ######################
