@@ -477,7 +477,7 @@ def initialize(consoleLogging=True):
         SEASON_FOLDERS_FORMAT = check_setting_str(CFG, 'General', 'season_folders_format', 'Season %02d')
         SEASON_FOLDERS_DEFAULT = bool(check_setting_int(CFG, 'General', 'season_folders_default', 0))
         
-        AUTOUPDATER_OWNER = check_setting_str(CFG, 'Autoupdater', 'owner', 'SickBeard-Team')
+        AUTOUPDATER_OWNER = check_setting_str(CFG, 'Autoupdater', 'owner', 'rintje')
         AUTOUPDATER_REPOSITORY = check_setting_str(CFG, 'Autoupdater', 'repository', 'SickBeard')
         AUTOUPDATER_VERSION = check_setting_str(CFG, 'Autoupdater', 'version', SICKBEARD_VERSION)
 

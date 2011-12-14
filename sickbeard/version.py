@@ -1,1 +1,1 @@
-SICKBEARD_VERSION = "develop"
+SICKBEARD_VERSION = "subliminal2"
