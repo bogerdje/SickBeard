@@ -18,22 +18,22 @@
 # You should have received a copy of the Lesser GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+__all__ = ['EXTENSIONS', 'MIMETYPES', 'Video', 'Episode', 'Movie', 'UnknownVideo', 'scan']
 
 
+from languages import list_languages
 import abc
-import struct
-import os
+import enzyme
+import guessit
 import hashlib
 import mimetypes
-import guessit
+import os
+import struct
 import subprocess
 import subtitles
-import utils
-from languages import *
-import kaa_metadata
 
 
-EXTENSIONS = ['.mkv', '.avi', '.mpg'] #TODO: Complete..
+EXTENSIONS = ['.avi', '.mkv', '.mpg', '.mp4', '.m4v', '.mov', '.ogm', '.ogv', '.wmv', '.divx', '.asf']
 MIMETYPES = ['video/mpeg', 'video/mp4', 'video/quicktime', 'video/x-ms-wmv', 'video/x-msvideo', 'video/x-flv', 'video/x-matroska', 'video/x-matroska-3d']
 
 
@@ -98,22 +98,22 @@ class Video(object):
         bytesize = struct.calcsize(longlongformat)
         f = open(self.path, 'rb')
         filesize = os.path.getsize(self.path)
-        hash = filesize
+        filehash = filesize
         if filesize < 65536 * 2:
             return []
         for _ in range(65536 / bytesize):
-            buffer = f.read(bytesize)
-            (l_value,) = struct.unpack(longlongformat, buffer)
-            hash += l_value
-            hash = hash & 0xFFFFFFFFFFFFFFFF  # to remain as 64bit number
+            filebuffer = f.read(bytesize)
+            (l_value,) = struct.unpack(longlongformat, filebuffer)
+            filehash += l_value
+            filehash = filehash & 0xFFFFFFFFFFFFFFFF  # to remain as 64bit number
         f.seek(max(0, filesize - 65536), 0)
         for _ in range(65536 / bytesize):
-            buffer = f.read(bytesize)
-            (l_value,) = struct.unpack(longlongformat, buffer)
-            hash += l_value
-            hash = hash & 0xFFFFFFFFFFFFFFFF
+            filebuffer = f.read(bytesize)
+            (l_value,) = struct.unpack(longlongformat, filebuffer)
+            filehash += l_value
+            filehash = filehash & 0xFFFFFFFFFFFFFFFF
         f.close()
-        returnedhash = '%016x' % hash
+        returnedhash = '%016x' % filehash
         return returnedhash
 
     def _computeHashTheSubDB(self):
@@ -150,9 +150,13 @@ class Video(object):
             return []
         basepath = os.path.splitext(self.path)[0]
         results = []
-        kaa_infos = kaa_metadata.parse(self.path)
-        if isinstance(kaa_infos, kaa_metadata.video.core.AVContainer):
-            results.extend([subtitles.EmbeddedSubtitle.fromKaa(self.path, s) for s in kaa_infos.subtitles])
+        video_infos = None
+        try:
+            video_infos = enzyme.parse(self.path)
+        except enzyme.ParseError:
+            pass
+        if isinstance(video_infos, enzyme.core.AVContainer):
+            results.extend([subtitles.EmbeddedSubtitle.fromEnzyme(self.path, s) for s in video_infos.subtitles])
         for l in list_languages(1):
             for e in subtitles.EXTENSIONS:
                 single_path = basepath + '%s' % e

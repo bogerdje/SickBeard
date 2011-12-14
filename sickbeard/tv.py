@@ -744,6 +744,9 @@ class TVShow(object):
                     if curEp.location and curEp.status in Quality.DOWNLOADED:
                         logger.log(str(self.tvdbid) + ": Location for " + str(season) + "x" + str(episode) + " doesn't exist, removing it and changing our status to IGNORED", logger.DEBUG)
                         curEp.status = IGNORED
+                        curEp.subtitles = list()
+                        curEp.subtitles_searchcount = 0
+                        curEp.subtitles_lastsearch = str(datetime.datetime.min)
                     curEp.location = ''
                     curEp.hasnfo = False
                     curEp.hastbn = False

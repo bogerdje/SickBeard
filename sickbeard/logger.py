@@ -64,7 +64,6 @@ class SBRotatingLogHandler(object):
         self.cur_handler = self._config_handler()
     
         logging.getLogger('sickbeard').addHandler(self.cur_handler)
-        logging.getLogger('subliminal').addHandler(self.cur_handler)
     
         # define a Handler which writes INFO messages or higher to the sys.stderr
         if consoleLogging:
@@ -77,10 +76,8 @@ class SBRotatingLogHandler(object):
     
             # add the handler to the root logger
             logging.getLogger('sickbeard').addHandler(console)
-            logging.getLogger('subliminal').addHandler(console)
     
         logging.getLogger('sickbeard').setLevel(logging.DEBUG)
-        logging.getLogger('subliminal').setLevel(logging.DEBUG)
 
     def _config_handler(self):
         """
