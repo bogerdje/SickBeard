@@ -514,7 +514,7 @@ class SourceUpdateManager(GitUpdateManager):
         Downloads the latest source tarball from github and installs it over the existing version.
         """
 
-        tar_download_url = 'http://github.com/' + sickbeard.AUTOUPDATER_OWNER + ' /' + sickbeard.AUTOUPDATER_REPOSITORY + '/tarball/' + sickbeard.AUTOUPDATER_VERSION
+        tar_download_url = 'http://github.com/' + sickbeard.AUTOUPDATER_OWNER + '/' + sickbeard.AUTOUPDATER_REPOSITORY + '/tarball/' + sickbeard.AUTOUPDATER_VERSION
         sb_update_dir = os.path.join(sickbeard.PROG_DIR, 'sb-update')
         version_path = os.path.join(sickbeard.PROG_DIR, 'version.txt')
 
